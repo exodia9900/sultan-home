@@ -1,1 +1,0 @@
-Temporary verification that the ChatGPT GitHub connector can write to this repository. This file will be removed immediately.
