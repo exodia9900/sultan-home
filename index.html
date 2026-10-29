@@ -154,7 +154,10 @@ if(!isConfigured()){status('يلزم إدخال إعدادات Firebase قبل �
 else {
   try {
     firebase.initializeApp(FIREBASE_CONFIG);db=firebase.firestore();
-    firebase.auth().signInAnonymously().then(()=>{
+    status('جارٍ الاتصال بخدمة تسجيل الدخول...', '');
+    const authAttempt=firebase.auth().signInAnonymously();
+    const authTimeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('انتهت مهلة تسجيل الدخول بعد 12 ثانية. تحقق من اتصال الإنترنت أو حجب خدمات Firebase. أعد تحميل الصفحة بعد التحقق.')),12000));
+    Promise.race([authAttempt,authTimeout]).then(()=>{
       const ref=db.collection('rooms').doc(ROOM_ID);
       ref.onSnapshot(doc=>{
         const remote=doc.exists&&doc.data().state?doc.data().state:null;
