@@ -310,6 +310,15 @@ else {
         const serialized=JSON.stringify(remote);
         if(hasUserData(state)&&!hasUserData(remote)){cloudReady=false;lastSyncedState=cloneState(remote);status('تحذير: البيانات السحابية تبدو فارغة؛ احتفظنا ببيانات هذا الجهاز ولم نستبدلها.','error');document.getElementById('saveMode').textContent='توجد بيانات محلية تحتاج مراجعة';return}
         cloudReady=true;
+        if(!lastSyncedState&&localRevision===syncedRevision){
+          if(hasUserData(state)&&!sameValue(state,remote)){try{localStorage.setItem('homeRepairTrackerRecovery',JSON.stringify(state))}catch(e){}}
+          applyingRemote=true;state=cloneState(remote);normalizePhases();
+          try{localStorage.setItem('homeRepairTracker',JSON.stringify(state))}catch(e){}
+          document.getElementById('notes').value=state.notes||'';document.getElementById('checkStock').checked=!!state.stock;
+          renderTasks();renderShopping();renderFriendTasks();renderContributions();applyingRemote=false;
+          lastSyncedState=cloneState(remote);lastCloudJson=serialized;syncedRevision=localRevision;
+          status('متصل — تم تحميل البيانات المشتركة','online');document.getElementById('saveMode').textContent='مزامنة مباشرة بين الجهازين';return;
+        }
         if(localRevision>syncedRevision){lastSyncedState=lastSyncedState||cloneState(remote);status('هناك تغييرات قيد الحفظ — ندمجها مع تحديثات الآخرين','online');return}
         if(serialized!==JSON.stringify(state)){
           if(hasUserData(state)){try{localStorage.setItem('homeRepairTrackerRecovery',JSON.stringify(state))}catch(e){}}
