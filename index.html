@@ -209,7 +209,7 @@ else {
         const remote=doc.exists&&doc.data().state?doc.data().state:null;
         if(!remote){cloudReady=true;status('المزامنة جاهزة — أول تعديل سيُحفظ مشتركًا','online');save();return}
         const serialized=JSON.stringify(remote);
-        if(serialized!==JSON.stringify(state)){applyingRemote=true;state={...state,...remote};try{localStorage.setItem('homeRepairTracker',JSON.stringify(state))}catch(e){}document.getElementById('notes').value=state.notes||'';document.getElementById('checkStock').checked=!!state.stock;renderTasks();renderShopping();applyingRemote=false}
+        if(serialized!==JSON.stringify(state)){applyingRemote=true;state={...state,...remote};normalizePhases();try{localStorage.setItem('homeRepairTracker',JSON.stringify(state))}catch(e){}document.getElementById('notes').value=state.notes||'';document.getElementById('checkStock').checked=!!state.stock;renderTasks();renderShopping();renderFriendTasks();applyingRemote=false}
         lastCloudJson=serialized;cloudReady=true;status('متصل — التغييرات محفوظة ومشتركة','online');document.getElementById('saveMode').textContent='مزامنة مباشرة بين الجهازين';
       },err=>status('خطأ في قراءة البيانات: '+err.message,'error'));
     }).catch(err=>status('تعذر تسجيل الدخول المجهول: '+err.message,'error'));
