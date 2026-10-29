@@ -73,6 +73,24 @@ footer{text-align:center;color:#87928d;font-size:.82rem;padding:20px 8px 8px}
 </section>
 <footer>تجهيز منزل السلطان محمود · قائمة متابعة عملية — راجع المقاسات والكميات مع الصنايعي قبل شراء المواد.</footer>
 <script>
+/* Register before the application script so syntax/runtime errors are not missed. */
+window.addEventListener('error', function(e) {
+  var label = document.getElementById('syncText');
+  var pill = document.getElementById('syncStatus');
+  if (label && e && (e.message || e.filename)) {
+    var detail = (e.message || 'خطأ تحميل JavaScript') + (e.lineno ? ' — السطر ' + e.lineno : '');
+    label.textContent = 'فشل تشغيل JavaScript: ' + detail;
+    if (pill) pill.className = 'sync-pill error';
+  }
+}, true);
+window.addEventListener('unhandledrejection', function(e) {
+  var label = document.getElementById('syncText');
+  var pill = document.getElementById('syncStatus');
+  if (label) label.textContent = 'فشل طلب غير معالج: ' + String(e.reason && e.reason.message || e.reason || 'سبب غير معروف');
+  if (pill) pill.className = 'sync-pill error';
+}, true);
+</script>
+<script>
 const phases=[
 ["1. التجهيزات والكهرباء الأولية",[
 "فحص مواقع البريزات والتاكوات وتحديد المطلوب",
