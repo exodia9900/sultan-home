@@ -182,7 +182,7 @@ const ROOM_ID = "sultan-mahmoud-home-2026-7f3a9c2e";
 let state={done:{},bought:{},items:initialShopping.map((text,i)=>({id:'i'+i,text})),notes:'',stock:false,friendTasks:[],contributions:[],phases:null};
 const ADMIN_PIN='2580'; // رمز واجهة بسيط فقط؛ ليس حماية أمنية حقيقية.
 let isAdmin=false;
-let db=null, cloudReady=false, applyingRemote=false, lastCloudJson='', lastSyncedState=null, localRevision=0, syncedRevision=0, cloudWriteQueue=Promise.resolve();
+let db=null, cloudReady=false, applyingRemote=false, lastCloudJson='', lastSyncedState=null, localRevision=0, syncedRevision=0, queuedRevision=0, cloudWriteQueue=Promise.resolve();
 function cloneState(value){return value==null?value:JSON.parse(JSON.stringify(value))}
 function sameValue(a,b){return JSON.stringify(a)===JSON.stringify(b)}
 function mergeConcurrent(base,local,remote){
@@ -269,7 +269,7 @@ function save(){
  try{localStorage.setItem('homeRepairTracker',JSON.stringify(state))}catch(e){}
  updateProgress();
  if(!cloudReady||applyingRemote||!db)return;
- const revision=localRevision,localSnapshot=cloneState(state),baseSnapshot=cloneState(lastSyncedState||{}),ref=db.collection('rooms').doc(ROOM_ID);
+ const revision=localRevision,localSnapshot=cloneState(state),baseSnapshot=cloneState(lastSyncedState||{}),ref=db.collection('rooms').doc(ROOM_ID);queuedRevision=revision;
  cloudWriteQueue=cloudWriteQueue.then(()=>db.runTransaction(async tx=>{
   const snap=await tx.get(ref),remote=snap.exists&&snap.data().state?snap.data().state:{};
   if(Object.keys(remote).length&&hasUserData(localSnapshot)&&!hasUserData(remote)&&!hasUserData(baseSnapshot))throw new Error('البيانات السحابية فارغة؛ أوقفنا الكتابة الآلية لحماية بياناتك.');
@@ -319,7 +319,7 @@ else {
           lastSyncedState=cloneState(remote);lastCloudJson=serialized;syncedRevision=localRevision;
           status('متصل — تم تحميل البيانات المشتركة','online');document.getElementById('saveMode').textContent='مزامنة مباشرة بين الجهازين';return;
         }
-        if(localRevision>syncedRevision){lastSyncedState=lastSyncedState||cloneState(remote);status('هناك تغييرات قيد الحفظ — ندمجها مع تحديثات الآخرين','online');return}
+        if(localRevision>syncedRevision){lastSyncedState=lastSyncedState||cloneState(remote);if(queuedRevision<localRevision)save();status('هناك تغييرات قيد الحفظ — ندمجها مع تحديثات الآخرين','online');return}
         if(serialized!==JSON.stringify(state)){
           if(hasUserData(state)){try{localStorage.setItem('homeRepairTrackerRecovery',JSON.stringify(state))}catch(e){}}
           applyingRemote=true;state=mergeConcurrent(lastSyncedState||remote,state,remote);normalizePhases();
