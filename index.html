@@ -52,7 +52,7 @@ footer{text-align:center;color:#87928d;font-size:.82rem;padding:20px 8px 8px}
 <section class="panel" id="contributionsPanel">
 <div class="section-label">مساهمة الأصحاب</div>
 <h2>💚 المساهمات المالية</h2>
-<p class="small">كل شخص يقدر يسجل مساهمته باسمه. الاسم والمبلغ إلزاميان، والمبلغ بالدينار الليبي ويجب أن يكون أكبر من صفر.</p>
+<p class="small">الأصحاب يقدروا يسجلوا مساهماتهم، والسلطان يقدر من وضع الدخول برمز 2580 تعديل أسماء المساهمين والمبالغ أو حذف أي مساهمة.</p>
 <div class="contribution-summary"><span id="contributionPeople">عدد المساهمين: 0</span><span id="contributionTotal">إجمالي المساهمات: 0 د.ل</span></div>
 <form id="contributionForm" class="contribution-form">
 <label>اسم المساهم (إجباري)<input id="contributorName" type="text" maxlength="60" autocomplete="name" placeholder="اكتب اسمك الكامل" required></label>
@@ -280,7 +280,21 @@ function renderContributions(){
   const person=document.createElement('strong');person.textContent=item.name||'مساهم';
   const amount=document.createElement('span');amount.textContent=new Intl.NumberFormat('ar-LY',{minimumFractionDigits:0,maximumFractionDigits:2}).format(Number(item.amount)||0)+' د.ل';
   row.append(person,amount);
-  if(isAdmin)row.appendChild(makeButton('حذف','secondary',()=>{if(confirm('حذف هذه المساهمة المالية؟')){state.contributions.splice(index,1);save();renderContributions()}}));
+  if(isAdmin){
+   row.appendChild(makeButton('تعديل','secondary',()=>{
+    const nextName=prompt('تعديل اسم المساهم:',item.name||'');
+    if(nextName===null)return;
+    const cleanName=nextName.trim();
+    if(!cleanName){alert('اسم المساهم لا يمكن أن يكون فارغًا.');return}
+    const nextAmountRaw=prompt('تعديل قيمة المساهمة بالدينار الليبي:',String(Number(item.amount)||''));
+    if(nextAmountRaw===null)return;
+    const nextAmount=Number(nextAmountRaw.trim());
+    if(!nextAmountRaw.trim()||!Number.isFinite(nextAmount)||nextAmount<=0){alert('أدخل مبلغًا صحيحًا أكبر من صفر.');return}
+    item.name=cleanName.slice(0,60);item.amount=Math.round(nextAmount*100)/100;item.updatedAt=new Date().toISOString();
+    save();renderContributions();status('تم تعديل المساهمة المالية','online');
+   }));
+   row.appendChild(makeButton('حذف','secondary',()=>{if(confirm('حذف هذه المساهمة المالية؟')){state.contributions.splice(index,1);save();renderContributions()}}));
+  }
   list.appendChild(row);
  });
 }
