@@ -170,5 +170,24 @@ else {
   } catch(e){status('إعداد Firebase غير مكتمل: '+e.message,'error')}
 }
 </script>
+<script>
+/* Independent deployment/runtime watchdog: still runs if the main inline script fails to parse. */
+setTimeout(function(){
+  var label=document.getElementById('syncText');
+  var pill=document.getElementById('syncStatus');
+  if(label && label.textContent.indexOf('جاري التحقق من الاتصال')!==-1){
+    label.textContent='تعطل بدء المزامنة — نسخة التشخيص 29-10-2026. أعد فتح الرابط المحدّث.';
+    if(pill) pill.className='sync-pill error';
+  }
+},15000);
+window.addEventListener('error',function(e){
+  var label=document.getElementById('syncText');
+  var pill=document.getElementById('syncStatus');
+  if(label && (label.textContent.indexOf('جاري التحقق')!==-1 || label.textContent.indexOf('جارٍ الاتصال')!==-1)){
+    label.textContent='خطأ JavaScript: '+(e.message||'تعذّر تحميل أحد الملفات');
+    if(pill) pill.className='sync-pill error';
+  }
+});
+</script>
 </body>
 </html>
