@@ -32,6 +32,7 @@ footer{text-align:center;color:#87928d;font-size:.82rem;padding:20px 8px 8px}
 .sync-pill.online .sync-dot{background:#7be0ad}.sync-pill.error .sync-dot{background:#ff9c91}
 .share-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.share-row button{background:#fff;color:#175b49;box-shadow:none}.share-row button.secondary{background:#f0f5f2;color:#285646}
 @media(max-width:650px){.share-row button{width:100%}}
+.hero-person{display:flex;align-items:center;gap:16px;margin:0 0 18px;position:relative;z-index:1}.avatar{width:82px;height:82px;flex:0 0 82px;border-radius:50%;border:3px solid #ffffff80;background:#e4f3eb;color:#175b49;display:grid;place-items:center;font-size:2rem;font-weight:800;overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover}.hero-person .person-name{font-size:1.05rem;font-weight:750}.hero-person a{color:#d6f4e4;font-size:.85rem}.role-panel{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px;position:relative;z-index:1}.role-panel input{max-width:180px;background:#ffffff;color:#17231f}.role-note{font-size:.83rem;color:#d6e9e0}.admin-only{display:none!important}.is-admin .admin-only{display:flex!important}.is-admin .admin-block{display:block!important}.friend-task-meta{display:block;font-size:.8rem;color:#6b7974;margin-top:4px}.friend-task-meta strong{color:#176b55}.friend-task .task{align-items:center}.friend-task input:disabled{opacity:.8}.danger-note{color:#9b4b40;font-size:.83rem}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -39,9 +40,13 @@ footer{text-align:center;color:#87928d;font-size:.82rem;padding:20px 8px 8px}
 </head>
 <body>
 <header>
+<div class="hero-person"><div class="avatar" id="sultanAvatar" aria-label="صورة السلطان">س</div><div><div class="person-name">السلطان محمود</div><a href="https://ibb.co/rKjbVrdM" target="_blank" rel="noopener noreferrer">فتح صورة السلطان</a></div></div>
 <div class="eyebrow">✦ قائمة متابعة وتجهيز</div>
-<h1>تجهيز منزل صاحبنا السلطان محمود لميلادي</h1>
-<p>علّم على كل مهمة بعد إكمالها، وسجّل النواقص في قائمة المشتريات. التغييرات تتزامن بينك وبين صاحبك عند إعداد قاعدة البيانات المجانية.</p><div id="syncStatus" class="sync-pill"><span class="sync-dot"></span><span id="syncText">جاري التحقق من الاتصال...</span></div><div class="share-row"><button type="button" id="shareLink">نسخ رابط المشاركة</button></div>
+<h1>تجهيز منزل السلطان محمود لميلادي</h1>
+<p>السلطان يتحكم في قائمة التجهيزات، وأصحابه يقدروا يشوفوا التقدم ويسجلوا المهام اللي أنجزوها بأسمائهم في قسم أصحاب السلطان.</p>
+<div id="syncStatus" class="sync-pill"><span class="sync-dot"></span><span id="syncText">جاري التحقق من الاتصال...</span></div>
+<div class="role-panel"><input type="password" id="adminPin" inputmode="numeric" autocomplete="current-password" placeholder="رمز دخول السلطان" aria-label="رمز دخول السلطان"><button type="button" id="adminLogin">دخول السلطان</button><button type="button" id="adminLogout" class="secondary admin-only">تسجيل الخروج</button><span id="roleText" class="role-note">وضع المشاهدة — للأصحاب</span></div>
+<div class="share-row"><button type="button" id="shareLink">نسخ رابط المشاركة</button></div>
 </header>
 <div class="dashboard">
 <section class="panel">
@@ -52,24 +57,35 @@ footer{text-align:center;color:#87928d;font-size:.82rem;padding:20px 8px 8px}
 <div class="tip"><span class="tip-icon">💡</span><p><strong>ترتيب الشغل يوفّر الوقت والفلوس</strong><br>جهّز الكهرباء والتمديدات أولًا، ثم أعمال الغبار والتزويق، وخلي التنظيف النهائي بعد اكتمال التركيب.</p></div>
 </div>
 <div id="tasks"></div>
+<section class="panel" id="friendsPanel">
+<div class="section-label">مشاركة الأصحاب</div>
+<h2>🤝 أصحاب السلطان — مهام المساعدة</h2>
+<p class="small">السلطان يضيف المهام، وكل صاحب يكتب اسمه عند إنجاز مهمة. سيظهر اسم المنجز للجميع بعد مزامنة البيانات.</p>
+<div id="friendTasks"></div>
+<div class="admin-only admin-block" style="display:none">
+<div class="buyrow"><input id="newFriendTask" type="text" placeholder="مثال: تعبئة ثلاجة الأكل أو تجهيز غرفة النوم"><button id="addFriendTask">إضافة مهمة</button></div>
+<p class="small">أضف هنا المهام التي تريد من أصحابك المساعدة فيها. القسم يبدأ فارغًا.</p>
+</div>
+</section>
 <section class="panel">
 <div class="section-label">قائمة المشتريات</div>
 <h2>🛒 الأشياء الناقصة التي نحتاج شراءها</h2>
 <p class="small">أضف أي غرض ناقص قبل الذهاب للسوق، وعلّم عليه بعد شرائه. القائمة المبدئية أدناه للتأكد وليست تأكيدًا بأن هذه الأشياء ناقصة فعلًا.</p>
 <div class="stats"><strong>تقدم المشتريات</strong><strong id="buyCount">0 من 8 تم شراؤها</strong></div><div id="shopping"></div>
-<div class="buyrow"><input id="newItem" type="text" placeholder="اكتب غرضًا ناقصًا للشراء"><button id="addItem">إضافة</button></div>
+<div class="buyrow admin-only"><input id="newItem" type="text" placeholder="اكتب غرضًا ناقصًا للشراء"><button id="addItem">إضافة</button></div>
 <label class="task"><input type="checkbox" id="checkStock"><span>تمت مراجعة النواقص مع صاحب المنزل/الصنايعي قبل الشراء</span></label>
 </section>
 <section class="panel">
 <div class="section-label">ملاحظات المشروع</div>
 <h2>📝 ملاحظات ومقاسات وأسعار</h2>
-<textarea id="notes" placeholder="اكتب المقاسات، أسماء الصنايعية، الأسعار أو أي ملاحظات..."></textarea>
+<textarea id="notes" placeholder="اكتب المقاسات، أسماء الصنايعية، الأسعار أو أي ملاحظات..." readonly></textarea>
+<p class="small">الملاحظات يحررها السلطان فقط.</p>
 <div class="actions">
 <button id="export">تصدير نسخة احتياطية</button>
 <button class="secondary" onclick="window.print()">طباعة القائمة</button>
 <button class="secondary" id="reset">إعادة ضبط المهام</button>
 </div>
-<p class="small">المزامنة تحتاج إعداد Firebase مرة واحدة وفق ملف التعليمات المرفق. بعد النشر، أرسل رابط المشاركة لصاحبك؛ من يملك الرابط يمكنه تعديل القائمة.</p>
+<p class="small">المزامنة عبر Firebase. رمز الواجهة الافتراضي للسلطان هو <strong>2580</strong> — غيّره داخل الكود قبل الاستخدام إن رغبت. مهم: هذا الرمز يخفي أدوات الإدارة فقط، ولا يمنع تقنيًا أي شخص من تعديل قاعدة البيانات؛ قواعد Firebase الحالية تسمح لكل مستخدم مجهول مسجّل بالكتابة.</p>
 </section>
 <footer>تجهيز منزل السلطان محمود · قائمة متابعة عملية — راجع المقاسات والكميات مع الصنايعي قبل شراء المواد.</footer>
 <script>
@@ -151,23 +167,31 @@ const FIREBASE_CONFIG = {
   appId: "1:110781005572:web:f9ba244574480c9d1eda51"
 };
 const ROOM_ID = "sultan-mahmoud-home-2026-7f3a9c2e";
-let state={done:{},bought:{},items:initialShopping.map((text,i)=>({id:'i'+i,text})),notes:'',stock:false};
+let state={done:{},bought:{},items:initialShopping.map((text,i)=>({id:'i'+i,text})),notes:'',stock:false,friendTasks:[]};
+const ADMIN_PIN='2580'; // رمز واجهة بسيط فقط؛ ليس حماية أمنية حقيقية.
+let isAdmin=false;
 let db=null, cloudReady=false, applyingRemote=false, lastCloudJson='';
 const syncStatus=document.getElementById('syncStatus'),syncText=document.getElementById('syncText');
 function status(message,kind=''){syncText.textContent=message;syncStatus.className='sync-pill'+(kind ? ' '+kind : '')}
 function isConfigured(){return FIREBASE_CONFIG.apiKey!=="PASTE_API_KEY_HERE" && FIREBASE_CONFIG.projectId!=="PASTE_PROJECT_ID_HERE" && FIREBASE_CONFIG.appId!=="PASTE_APP_ID_HERE"}
 try{const old=JSON.parse(localStorage.getItem('homeRepairTracker'));if(old)state={...state,...old}}catch(e){}
-function updateProgress(){const total=phases.reduce((sum,p)=>sum+p[1].length,0);let completed=0;phases.forEach((p,pi)=>p[1].forEach((_,ti)=>{if(state.done['t'+pi+'_'+ti])completed++}));const pct=total?Math.round(completed/total*100):0;document.getElementById('bar').style.width=pct+'%';document.getElementById('percent').textContent=pct+'%';document.getElementById('count').textContent=completed+' من '+total+' مهام مكتملة';const buyTotal=state.items.length;const buyCompleted=state.items.filter(item=>!!state.bought[item.id]).length;const buyCount=document.getElementById('buyCount');if(buyCount)buyCount.textContent=buyCompleted+' من '+buyTotal+' تم شراؤها'}
-function renderTasks(){taskRoot.innerHTML='';phases.forEach((p,pi)=>{const section=document.createElement('section');section.className='phase';const h=document.createElement('h2');h.textContent=p[0];section.appendChild(h);p[1].forEach((label,ti)=>{const id='t'+pi+'_'+ti;const row=document.createElement('label');row.className='task'+(state.done[id]?' done':'');const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!state.done[id];cb.onchange=()=>{state.done[id]=cb.checked;row.classList.toggle('done',cb.checked);save()};const span=document.createElement('span');span.textContent=label;row.append(cb,span);section.appendChild(row)});taskRoot.appendChild(section)});updateProgress()}
-function renderShopping(){shopRoot.innerHTML='';state.items.forEach(item=>{const row=document.createElement('div');row.className='buyrow';const label=document.createElement('label');label.className='task'+(state.bought[item.id]?' done':'');const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!state.bought[item.id];cb.onchange=()=>{state.bought[item.id]=cb.checked;label.classList.toggle('done',cb.checked);save()};const span=document.createElement('span');span.textContent=item.text;label.append(cb,span);const del=document.createElement('button');del.type='button';del.textContent='حذف';del.onclick=()=>{state.items=state.items.filter(x=>x.id!==item.id);delete state.bought[item.id];save();renderShopping()};row.append(label,del);shopRoot.appendChild(row)});updateProgress()}
+function updateProgress(){const coreTotal=phases.reduce((sum,p)=>sum+p[1].length,0);let coreDone=0;phases.forEach((p,pi)=>p[1].forEach((_,ti)=>{if(state.done['t'+pi+'_'+ti])coreDone++}));const friendTotal=(state.friendTasks||[]).length;const friendDone=(state.friendTasks||[]).filter(t=>!!t.completedBy).length;const total=coreTotal+friendTotal;const completed=coreDone+friendDone;const pct=total?Math.round(completed/total*100):0;document.getElementById('bar').style.width=pct+'%';document.getElementById('percent').textContent=pct+'%';document.getElementById('count').textContent=completed+' من '+total+' مهام مكتملة';const buyTotal=state.items.length;const buyCompleted=state.items.filter(item=>!!state.bought[item.id]).length;const buyCount=document.getElementById('buyCount');if(buyCount)buyCount.textContent=buyCompleted+' من '+buyTotal+' تم شراؤها'}
+function renderTasks(){taskRoot.innerHTML='';phases.forEach((p,pi)=>{const section=document.createElement('section');section.className='phase';const h=document.createElement('h2');h.textContent=p[0];section.appendChild(h);p[1].forEach((label,ti)=>{const id='t'+pi+'_'+ti;const row=document.createElement('label');row.className='task'+(state.done[id]?' done':'');const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!state.done[id];cb.disabled=!isAdmin;cb.title=isAdmin?'تحديد إنجاز المهمة':'المهام الأساسية للعرض فقط';cb.onchange=()=>{if(!isAdmin){cb.checked=!!state.done[id];return}state.done[id]=cb.checked;row.classList.toggle('done',cb.checked);save()};const span=document.createElement('span');span.textContent=label;row.append(cb,span);section.appendChild(row)});taskRoot.appendChild(section)});updateProgress()}
+function renderFriendTasks(){const root=document.getElementById('friendTasks');root.innerHTML='';const list=Array.isArray(state.friendTasks)?state.friendTasks:[];if(!list.length){const empty=document.createElement('p');empty.className='small';empty.textContent=isAdmin?'القسم فارغ حاليًا. أضف أول مهمة للأصحاب من الحقل أعلاه.':'ما زالت قائمة مهام الأصحاب فارغة؛ السلطان سيضيف المهام هنا.';root.appendChild(empty);return}list.forEach(task=>{const card=document.createElement('div');card.className='friend-task';const row=document.createElement('label');row.className='task'+(task.completedBy?' done':'');const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!task.completedBy;cb.disabled=!!task.completedBy&&!isAdmin;cb.onchange=()=>{if(cb.checked){const name=prompt('اكتب اسمك كما تحب أن يظهر للجميع:');if(!name||!name.trim()){cb.checked=false;return}task.completedBy=name.trim().slice(0,60);task.completedAt=new Date().toISOString()}else if(isAdmin){task.completedBy='';task.completedAt=''}else{cb.checked=true;return}save();renderFriendTasks()};const span=document.createElement('span');span.textContent=task.text;row.append(cb,span);card.appendChild(row);if(task.completedBy){const meta=document.createElement('span');meta.className='friend-task-meta';meta.textContent='أنجزها: ';const strong=document.createElement('strong');strong.textContent=task.completedBy;meta.appendChild(strong);if(task.completedAt){const d=new Date(task.completedAt);if(!Number.isNaN(d.getTime()))meta.appendChild(document.createTextNode(' · '+d.toLocaleDateString('ar-LY')))}card.appendChild(meta)}if(isAdmin){const del=document.createElement('button');del.type='button';del.className='secondary';del.style.margin='6px 0 10px';del.textContent='حذف المهمة';del.onclick=()=>{if(confirm('حذف هذه المهمة من قائمة الأصحاب؟')){state.friendTasks=state.friendTasks.filter(t=>t.id!==task.id);save();renderFriendTasks()}};card.appendChild(del)}root.appendChild(card)});updateProgress()}
+function applyRole(){document.body.classList.toggle('is-admin',isAdmin);document.getElementById('roleText').textContent=isAdmin?'وضع السلطان — يمكنك إدارة القائمة':'وضع المشاهدة — للأصحاب';document.getElementById('adminPin').value='';document.getElementById('adminPin').style.display=isAdmin?'none':'';document.getElementById('adminLogin').style.display=isAdmin?'none':'';document.getElementById('adminLogout').style.display=isAdmin?'inline-flex':'none';document.getElementById('notes').readOnly=!isAdmin;document.getElementById('checkStock').disabled=!isAdmin;document.getElementById('export').style.display=isAdmin?'':'none';document.getElementById('reset').style.display=isAdmin?'':'none';document.getElementById('addItem').disabled=!isAdmin;document.getElementById('newItem').disabled=!isAdmin;document.getElementById('addFriendTask').disabled=!isAdmin;renderTasks();renderShopping();renderFriendTasks()}
+function renderShopping(){shopRoot.innerHTML='';state.items.forEach(item=>{const row=document.createElement('div');row.className='buyrow';const label=document.createElement('label');label.className='task'+(state.bought[item.id]?' done':'');const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!state.bought[item.id];cb.disabled=!isAdmin;cb.onchange=()=>{if(!isAdmin){cb.checked=!!state.bought[item.id];return}state.bought[item.id]=cb.checked;label.classList.toggle('done',cb.checked);save()};const span=document.createElement('span');span.textContent=item.text;label.append(cb,span);row.append(label);if(isAdmin){const del=document.createElement('button');del.type='button';del.textContent='حذف';del.onclick=()=>{state.items=state.items.filter(x=>x.id!==item.id);delete state.bought[item.id];save();renderShopping()};row.appendChild(del)}shopRoot.appendChild(row)});updateProgress()}
 function save(){try{localStorage.setItem('homeRepairTracker',JSON.stringify(state))}catch(e){}updateProgress();if(cloudReady&&!applyingRemote){const payload=JSON.parse(JSON.stringify(state));const serialized=JSON.stringify(payload);lastCloudJson=serialized;db.collection('rooms').doc(ROOM_ID).set({state:payload,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}).then(()=>status('متصل — التغييرات محفوظة ومشتركة','online')).catch(err=>status('تعذرت المزامنة: '+err.message,'error'))}}
-document.getElementById('addItem').onclick=()=>{const input=document.getElementById('newItem');const text=input.value.trim();if(!text)return;state.items.push({id:'x'+Date.now(),text});input.value='';save();renderShopping()};
-document.getElementById('notes').value=state.notes||'';document.getElementById('notes').oninput=e=>{state.notes=e.target.value;save()};
-document.getElementById('checkStock').checked=!!state.stock;document.getElementById('checkStock').onchange=e=>{state.stock=e.target.checked;save()};
+document.getElementById('addItem').onclick=()=>{if(!isAdmin)return;const input=document.getElementById('newItem');const text=input.value.trim();if(!text)return;state.items.push({id:'x'+Date.now(),text});input.value='';save();renderShopping()};
+document.getElementById('addFriendTask').onclick=()=>{if(!isAdmin)return;const input=document.getElementById('newFriendTask');const text=input.value.trim();if(!text)return;state.friendTasks=Array.isArray(state.friendTasks)?state.friendTasks:[];state.friendTasks.push({id:'f'+Date.now(),text,completedBy:'',completedAt:''});input.value='';save();renderFriendTasks()};
+document.getElementById('adminLogin').onclick=()=>{if(document.getElementById('adminPin').value===ADMIN_PIN){isAdmin=true;applyRole();status('دخل السلطان — تذكّر أن رمز الواجهة بسيط وغير آمن','online')}else{status('رمز الدخول غير صحيح','error');document.getElementById('adminPin').value=''}};
+document.getElementById('adminPin').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('adminLogin').click()});
+document.getElementById('adminLogout').onclick=()=>{isAdmin=false;applyRole();status('وضع المشاهدة — للأصحاب','online')};
+document.getElementById('notes').value=state.notes||'';document.getElementById('notes').oninput=e=>{if(!isAdmin){e.target.value=state.notes||'';return}state.notes=e.target.value;save()};
+document.getElementById('checkStock').checked=!!state.stock;document.getElementById('checkStock').onchange=e=>{if(!isAdmin){e.target.checked=!!state.stock;return}state.stock=e.target.checked;save()};
 document.getElementById('export').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='نسخة-احتياطية-صيانة-المنزل.json';a.click();URL.revokeObjectURL(a.href)};
-document.getElementById('reset').onclick=()=>{if(confirm('متأكد أنك تريد تصفير إنجاز المهام؟ لن تُحذف قائمة المشتريات والملاحظات.')){state.done={};save();renderTasks()}};
+document.getElementById('reset').onclick=()=>{if(!isAdmin)return;if(confirm('متأكد أنك تريد تصفير إنجاز المهام؟ لن تُحذف قائمة المشتريات والملاحظات.')){state.done={};save();renderTasks()}};
 document.getElementById('shareLink').onclick=async()=>{try{await navigator.clipboard.writeText(location.href);status('تم نسخ رابط الصفحة — أرسله لصاحبك','online')}catch(e){prompt('انسخ هذا الرابط وأرسله لصاحبك:',location.href)}};
-renderTasks();renderShopping();
+renderTasks();renderShopping();renderFriendTasks();applyRole();
 if(!isConfigured()){status('يلزم إدخال إعدادات Firebase قبل تفعيل المزامنة');document.getElementById('saveMode').textContent='الحفظ محلي إلى حين الإعداد'}
 else {
   try {
