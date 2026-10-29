@@ -205,6 +205,25 @@ let isAdmin=false;
 let db=null, cloudReady=false, applyingRemote=false, lastCloudJson='', lastSyncedState=null, localRevision=0, syncedRevision=0, queuedRevision=0, cloudWriteQueue=Promise.resolve();
 function cloneState(value){return value==null?value:JSON.parse(JSON.stringify(value))}
 function sameValue(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+function normalizeContributionIds(s){
+ if(!s||typeof s!=='object')return s;
+ const normalizeList=(list,prefix,dateKey)=>{
+  if(!Array.isArray(list))return;
+  const occurrences=new Map(),used=new Set();
+  list.forEach(item=>{
+   if(!item||typeof item!=='object')return;
+   if(typeof item.id==='string'&&item.id.trim()&&!used.has(item.id)){used.add(item.id);return}
+   const raw=[String(item.name||'').trim(),String(Number(item.amount)||0),String(item[dateKey]||'')].join('|');
+   let hash=2166136261;for(let i=0;i<raw.length;i++){hash^=raw.charCodeAt(i);hash=Math.imul(hash,16777619)}
+   const key=(hash>>>0).toString(36),n=(occurrences.get(key)||0)+1;occurrences.set(key,n);
+   let id=prefix+key+'_'+n;while(used.has(id)){const next=(occurrences.get(key)||n)+1;occurrences.set(key,next);id=prefix+key+'_'+next}
+   item.id=id;used.add(id);
+  });
+ };
+ normalizeList(s.contributions,'legacy_general_','createdAt');
+ if(Array.isArray(s.friendTasks))s.friendTasks.forEach(task=>{if(task&&typeof task==='object')normalizeList(task.contributions,'legacy_task_','paidAt')});
+ return s;
+}
 function mergeConcurrent(base,local,remote){
  if(sameValue(local,base))return cloneState(remote);
  if(sameValue(remote,base))return cloneState(local);
@@ -235,6 +254,7 @@ const syncStatus=document.getElementById('syncStatus'),syncText=document.getElem
 function status(message,kind=''){syncText.textContent=message;syncStatus.className='sync-pill'+(kind ? ' '+kind : '')}
 function isConfigured(){return FIREBASE_CONFIG.apiKey!=="PASTE_API_KEY_HERE" && FIREBASE_CONFIG.projectId!=="PASTE_PROJECT_ID_HERE" && FIREBASE_CONFIG.appId!=="PASTE_APP_ID_HERE"}
 try{const old=JSON.parse(localStorage.getItem('homeRepairTracker'));if(old)state={...state,...old}}catch(e){}
+normalizeContributionIds(state);
 function normalizePhases(){if(!Array.isArray(state.phases)||!state.phases.length){state.phases=defaultPhases.map((p,pi)=>({id:'p'+pi,title:p[0],tasks:p[1].map((text,ti)=>({id:'t'+pi+'_'+ti,text}))}));return}state.phases=state.phases.map((p,pi)=>({id:p.id||'p'+pi,title:String(p.title||'قسم جديد'),tasks:(Array.isArray(p.tasks)?p.tasks:[]).map((t,ti)=>typeof t==='string'?({id:'t'+pi+'_'+ti,text:t}):({id:t.id||'t'+pi+'_'+ti,text:String(t.text||'')}))}))}
 normalizePhases();if(!Array.isArray(state.contributions))state.contributions=[];
 function hasUserData(s){if(!s)return false;if(Object.values(s.done||{}).some(Boolean)||Object.values(s.bought||{}).some(Boolean)||String(s.notes||'').trim()||!!s.stock||(Array.isArray(s.friendTasks)&&s.friendTasks.length)||(Array.isArray(s.contributions)&&s.contributions.length))return true;if(Array.isArray(s.items)&&(s.items.length!==initialShopping.length||s.items.some((x,i)=>!initialShopping[i]||x.text!==initialShopping[i])))return true;const base=defaultPhases.map(p=>({title:p[0],tasks:p[1]}));const current=Array.isArray(s.phases)?s.phases.map(p=>({title:p.title,tasks:(p.tasks||[]).map(t=>typeof t==='string'?t:t.text)})):base;return JSON.stringify(current)!==JSON.stringify(base)}
@@ -327,6 +347,7 @@ if(isAdmin){const actions=document.createElement('div');actions.className='admin
 function applyRole(){document.body.classList.toggle('is-admin',isAdmin);document.getElementById('roleText').textContent=isAdmin?'وضع السلطان — يمكنك إدارة القائمة':'وضع المشاهدة — للأصحاب';document.getElementById('adminPin').value='';document.getElementById('adminPin').style.display=isAdmin?'none':'';document.getElementById('adminLogin').style.display=isAdmin?'none':'';document.getElementById('adminLogout').style.display=isAdmin?'inline-flex':'none';document.getElementById('notes').readOnly=!isAdmin;document.getElementById('checkStock').disabled=!isAdmin;document.getElementById('export').style.display=isAdmin?'':'none';document.getElementById('reset').style.display=isAdmin?'':'none';document.getElementById('addItem').disabled=!isAdmin;document.getElementById('newItem').disabled=!isAdmin;document.getElementById('addFriendTask').disabled=!isAdmin;renderTasks();renderShopping();renderFriendTasks();renderContributions()}
 function renderShopping(){shopRoot.innerHTML='';state.items.forEach(item=>{const row=document.createElement('div');row.className='buyrow';const label=document.createElement('label');label.className='task'+(state.bought[item.id]?' done':'');const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!state.bought[item.id];cb.disabled=!isAdmin;cb.onchange=()=>{if(!isAdmin){cb.checked=!!state.bought[item.id];return}state.bought[item.id]=cb.checked;label.classList.toggle('done',cb.checked);save()};const span=document.createElement('span');span.textContent=item.text;label.append(cb,span);row.append(label);if(isAdmin){const edit=makeButton('تعديل','secondary',()=>{const text=prompt('تعديل اسم الغرض:',item.text);if(text&&text.trim()){item.text=text.trim().slice(0,200);save();renderShopping()}});edit.style.padding='8px 10px';row.appendChild(edit);const del=document.createElement('button');del.type='button';del.textContent='حذف';del.onclick=()=>{state.items=state.items.filter(x=>x.id!==item.id);delete state.bought[item.id];save();renderShopping()};row.appendChild(del)}shopRoot.appendChild(row)});updateProgress()}
 function save(){
+ normalizeContributionIds(state);normalizeContributionIds(lastSyncedState);
  localRevision++;
  try{localStorage.setItem('homeRepairTracker',JSON.stringify(state))}catch(e){}
  updateProgress();
@@ -334,6 +355,7 @@ function save(){
  const revision=localRevision,localSnapshot=cloneState(state),baseSnapshot=cloneState(lastSyncedState||{}),ref=db.collection('rooms').doc(ROOM_ID);queuedRevision=revision;
  cloudWriteQueue=cloudWriteQueue.then(()=>db.runTransaction(async tx=>{
   const snap=await tx.get(ref),remote=snap.exists&&snap.data().state?snap.data().state:{};
+  normalizeContributionIds(remote);
   if(Object.keys(remote).length&&hasUserData(localSnapshot)&&!hasUserData(remote)&&!hasUserData(baseSnapshot))throw new Error('البيانات السحابية فارغة؛ أوقفنا الكتابة الآلية لحماية بياناتك.');
   const merged=mergeConcurrent(baseSnapshot,localSnapshot,remote);
   tx.set(ref,{state:merged,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});return merged;
@@ -368,6 +390,7 @@ else {
       const ref=db.collection('rooms').doc(ROOM_ID);
       ref.onSnapshot(doc=>{
         const remote=doc.exists&&doc.data().state?doc.data().state:null;
+        if(remote)normalizeContributionIds(remote);
         if(!remote){lastSyncedState={};if(hasUserData(state)){cloudReady=false;status('تحذير: لا توجد بيانات سحابية؛ احتفظنا ببيانات هذا الجهاز ولم نكتب فوقها. لا تمسح بيانات المتصفح.','error');document.getElementById('saveMode').textContent='بيانات محلية محفوظة — المزامنة تحتاج مراجعة'}else{cloudReady=true;status('المزامنة جاهزة — أول تعديل سيُحفظ مشتركًا','online');document.getElementById('saveMode').textContent='جاهز للمزامنة'}return}
         const serialized=JSON.stringify(remote);
         if(hasUserData(state)&&!hasUserData(remote)){cloudReady=false;lastSyncedState=cloneState(remote);status('تحذير: البيانات السحابية تبدو فارغة؛ احتفظنا ببيانات هذا الجهاز ولم نستبدلها.','error');document.getElementById('saveMode').textContent='توجد بيانات محلية تحتاج مراجعة';return}
