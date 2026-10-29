@@ -154,7 +154,7 @@ const ROOM_ID = "sultan-mahmoud-home-2026-7f3a9c2e";
 let state={done:{},bought:{},items:initialShopping.map((text,i)=>({id:'i'+i,text})),notes:'',stock:false};
 let db=null, cloudReady=false, applyingRemote=false, lastCloudJson='';
 const syncStatus=document.getElementById('syncStatus'),syncText=document.getElementById('syncText');
-function status(message,kind=''){syncText.textContent=message;syncStatus.className='sync-pill'+(kind?' '+kind)}
+function status(message,kind=''){syncText.textContent=message;syncStatus.className='sync-pill'+(kind ? ' '+kind : '')}
 function isConfigured(){return FIREBASE_CONFIG.apiKey!=="PASTE_API_KEY_HERE" && FIREBASE_CONFIG.projectId!=="PASTE_PROJECT_ID_HERE" && FIREBASE_CONFIG.appId!=="PASTE_APP_ID_HERE"}
 try{const old=JSON.parse(localStorage.getItem('homeRepairTracker'));if(old)state={...state,...old}}catch(e){}
 function updateProgress(){const total=phases.reduce((sum,p)=>sum+p[1].length,0);let completed=0;phases.forEach((p,pi)=>p[1].forEach((_,ti)=>{if(state.done['t'+pi+'_'+ti])completed++}));const pct=total?Math.round(completed/total*100):0;document.getElementById('bar').style.width=pct+'%';document.getElementById('percent').textContent=pct+'%';document.getElementById('count').textContent=completed+' من '+total+' مهام مكتملة';const buyTotal=state.items.length;const buyCompleted=state.items.filter(item=>!!state.bought[item.id]).length;const buyCount=document.getElementById('buyCount');if(buyCount)buyCount.textContent=buyCompleted+' من '+buyTotal+' تم شراؤها'}
